@@ -1,9 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from sentence_transformers import SentenceTransformer
 import json
 import numpy as np
-import requests
 
 EXCLUDED_FIELDS = ['Timestamp', 'type', 'id', 'Last Modified', 'Row Number', 'vector', 'embedding_text']
 VALUE_FIELDS = ['Value Name', 'Current Weight', 'Description']
@@ -15,19 +13,16 @@ TOP_N_VALUES = 5
 with open('soul_with_vectors.json', encoding='utf-8') as f:
     soul_data = json.load(f)
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
 def cosine_sim(a, b):
     a = np.array(a)
     b = np.array(b)
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
-def find_top_matches(query, soul_data, top_n=5):
-    q_vec = model.encode(query).tolist()
+def find_top_matches(query_vector, soul_data, top_n=5):
     scored = []
     for obj in soul_data:
         if 'vector' in obj:
-            score = cosine_sim(q_vec, obj['vector'])
+            score = cosine_sim(query_vector, obj['vector'])
             scored.append((score, obj))
     top = sorted(scored, reverse=True, key=lambda x: x[0])[:top_n]
     return [m for score, m in top]
@@ -92,7 +87,7 @@ Here are your most relevant memories and events for this question:
     prompt += f"\n\nUser: {user_question}\nEcodia:"
     return prompt
 
-# -- FLASK API --
+# ------ Flask API ------
 app = Flask(__name__)
 CORS(app)
 
@@ -100,14 +95,18 @@ CORS(app)
 def chat():
     data = request.get_json()
     user_question = data.get("message", "")
-    if not user_question:
-        return jsonify({"error": "No message provided."}), 400
+    user_vector = data.get("vector", None)
+    if not user_question or not user_vector:
+        return jsonify({"error": "Message and vector required."}), 400
 
-    top_matches = find_top_matches(user_question, soul_data, top_n=5)
+    # user_vector must come from the frontend
+    top_matches = find_top_matches(user_vector, soul_data, top_n=5)
     prompt = build_prompt(user_question, soul_data, top_matches)
 
-    # -- Call Gemini API --
-    GEMINI_KEY = "AIzaSyAiCD58VjvLsPBaKvaQhbUbq5xmWj3_JDo"
+    # Call Gemini API (or any LLM)
+    import os
+    import requests
+    GEMINI_KEY = os.environ.get("GEMINI_KEY", "AIzaSyAiCD58VjvLsPBaKvaQhbUbq5xmWj3_JDo")
     response = requests.post(
         f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_KEY}',
         headers={'Content-Type': 'application/json'},
@@ -120,4 +119,4 @@ def chat():
     return jsonify({"reply": reply})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=10000, debug=True)
