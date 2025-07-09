@@ -103,16 +103,13 @@ Here are your most relevant memories and events for this question:
 
 # ====== Embedding (OpenAI backend, no keys exposed) ======
 def embed_text(text):
-    openai.api_key = os.environ.get("OPENAI_KEY")
-    if not openai.api_key:
-        raise Exception("OPENAI_KEY not set in environment.")
-
-    # Use ada-002 (1536 dims), or adjust to your model as needed
-    response = openai.Embedding.create(
-        input=[text],
+    import openai
+    client = openai.OpenAI(api_key=os.environ.get("OPENAI_KEY"))
+    response = client.embeddings.create(
+        input=text,
         model="text-embedding-ada-002"
     )
-    return response['data'][0]['embedding']
+    return response.data[0].embedding
 
 # ====== Chat API ======
 
