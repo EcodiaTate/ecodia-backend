@@ -4,4 +4,3 @@ sentence-transformers
 numpy
 requests
 gunicorn
-openai
