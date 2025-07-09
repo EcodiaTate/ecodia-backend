@@ -1,9 +1,9 @@
 name: Update Ecodia Vectors
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:      # Manual trigger
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 3 * * *"  # Runs daily at 3 AM UTC (adjust as needed)
 
 jobs:
   update-vectors:
@@ -13,7 +13,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # Full repo history needed for push
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -30,10 +30,14 @@ jobs:
         OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
       run: |
         python update_Vectors.py
-      
-    - name: Debug remote URL
-      run: git remote -v
-  
+
+    - name: Debug: Show current Git remote URL
+      run: git remote get-url origin
+
+    - name: Remove GitHub token header to avoid override
+      run: |
+        git config --unset http.https://github.com/.extraheader || echo "No extraheader set"
+
     - name: Commit and push if changed
       env:
         PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -42,6 +46,6 @@ jobs:
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git add soul_with_vectors.json
         git diff --cached --quiet || git commit -m "Automated update: regenerate vectors"
-        # Override the remote URL to use the PAT token
+        # Set remote URL with PAT token for authentication
         git remote set-url origin https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }}.git
         git push origin HEAD:${{ github.ref }}
