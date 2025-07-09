@@ -13,7 +13,8 @@ TOP_N_VALUES = 5
 
 # ====== Initialize Flask ======
 app = Flask(__name__)
-CORS(app, origins=["https://ecodia.au"])  # Change or add origins as needed
+
+CORS(app, origins=["http://localhost:3000", "https://ecodia.au"])
 
 # ====== Load soul data ONCE at startup ======
 with open('soul_with_vectors.json', 'r', encoding='utf-8') as f:
