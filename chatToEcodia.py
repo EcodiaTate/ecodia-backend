@@ -5,6 +5,8 @@ import numpy as np
 import os
 import requests
 
+import openai  # Make sure openai is installed in your environment
+
 # ====== Configuration ======
 EXCLUDED_FIELDS = ['Timestamp', 'type', 'id', 'Last Modified', 'Row Number', 'vector', 'embedding_text']
 VALUES_TYPE = 'values'
@@ -13,7 +15,6 @@ TOP_N_VALUES = 5
 
 # ====== Initialize Flask ======
 app = Flask(__name__)
-
 CORS(app, origins=["http://localhost:3000", "https://ecodia.au"])
 
 # ====== Load soul data ONCE at startup ======
@@ -100,7 +101,18 @@ Here are your most relevant memories and events for this question:
     prompt += f"\n\nUser: {user_question}\nEcodia:"
     return prompt
 
+# ====== Embedding (OpenAI backend, no keys exposed) ======
+def embed_text(text):
+    openai.api_key = os.environ.get("OPENAI_KEY")
+    if not openai.api_key:
+        raise Exception("OPENAI_KEY not set in environment.")
 
+    # Use ada-002 (1536 dims), or adjust to your model as needed
+    response = openai.Embedding.create(
+        input=[text],
+        model="text-embedding-ada-002"
+    )
+    return response['data'][0]['embedding']
 
 # ====== Chat API ======
 
@@ -109,15 +121,19 @@ def chat():
     try:
         data = request.get_json()
         user_question = data.get("message", "")
-        user_vector = data.get("vector", None)
-        if not user_question or not user_vector:
-            return jsonify({"error": "Message and vector required."}), 400
+        user_vector = data.get("vector")
+
+        if not user_question:
+            return jsonify({"error": "Message required."}), 400
+
+        if user_vector is None:
+            user_vector = embed_text(user_question)  # <-- vectorize on backend
 
         top_matches = find_top_matches(user_vector, soul_data, top_n=5)
         prompt = build_prompt(user_question, soul_data, top_matches)
 
-        # Call Gemini API
-        GEMINI_KEY = os.environ.get("GEMINI_KEY", "AIzaSyAiCD58VjvLsPBaKvaQhbUbq5xmWj3_JDo")
+        # Call Gemini API (or replace with OpenAI if preferred)
+        GEMINI_KEY = os.environ.get("GEMINI_KEY") or "AIzaSyAiCD58VjvLsPBaKvaQhbUbq5xmWj3_JDo"
         response = requests.post(
             f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_KEY}',
             headers={'Content-Type': 'application/json'},
