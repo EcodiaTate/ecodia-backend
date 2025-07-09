@@ -110,7 +110,7 @@ def chat():
         prompt = build_prompt(user_question, soul_data, top_matches)
 
         # Call Gemini API
-        GEMINI_KEY = os.environ.get("GEMINI_KEY", "YOUR_DEFAULT_GEMINI_KEY")
+        GEMINI_KEY = os.environ.get("GEMINI_KEY", "AIzaSyAiCD58VjvLsPBaKvaQhbUbq5xmWj3_JDo")
         response = requests.post(
             f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_KEY}',
             headers={'Content-Type': 'application/json'},
