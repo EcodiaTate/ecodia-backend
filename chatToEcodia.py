@@ -89,7 +89,7 @@ Here are your most relevant memories and events for this question:
 
 # ------ Flask API ------
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://ecodia.au"])
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
