@@ -27,7 +27,7 @@ jobs:
       env:
         OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
       run: |
-        python updateVectors.py
+        python update_Vectors.py
 
     - name: Commit and push if changed
       env:
