@@ -1,9 +1,9 @@
 name: Update Ecodia Vectors
 
 on:
-  workflow_dispatch:         # Allow manual trigger
+  workflow_dispatch:
   schedule:
-    - cron: "0 3 * * *"      # Runs every day at 3am UTC (change if you like)
+    - cron: "0 3 * * *"
 
 jobs:
   update-vectors:
@@ -11,10 +11,9 @@ jobs:
 
     steps:
     - name: Checkout code
-  uses: actions/checkout@v4
-  with:
-    fetch-depth: 0
-
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v5
