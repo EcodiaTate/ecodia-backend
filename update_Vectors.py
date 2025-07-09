@@ -1,31 +1,54 @@
-from sentence_transformers import SentenceTransformer
-import json
 import requests
+import json
+import time
 
-# Your live Ecodia data API endpoint (replace with your real URL)
+# === CONFIG ===
 DATA_ENDPOINT = "https://script.google.com/macros/s/AKfycbzXADSD9DGS4QH7qOwJVoSbhXMh25U_9o39SQKHuVHOE5akBmUeWaSxJSDj5p-Pi8G6/exec"
+OPENAI_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  # <-- REPLACE with your OpenAI API key!
 
+EXCLUDED_KEYS = ["vector", "id", "type"]
+
+# === FETCH DATA ===
 print("Fetching live Ecodia data...")
 response = requests.get(DATA_ENDPOINT)
 response.raise_for_status()
 soul_data = response.json()
-
 print(f"Fetched {len(soul_data)} records. Generating embeddings...")
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# === HELPER: Get OpenAI embedding ===
+def get_openai_embedding(text, retries=3, delay=1):
+    for attempt in range(retries):
+        try:
+            url = "https://api.openai.com/v1/embeddings"
+            headers = {
+                "Authorization": f"Bearer {OPENAI_KEY}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "input": text,
+                "model": "text-embedding-3-small"
+            }
+            r = requests.post(url, headers=headers, json=data)
+            r.raise_for_status()
+            return r.json()['data'][0]['embedding']
+        except Exception as e:
+            print(f"Error getting embedding, attempt {attempt+1}/{retries}: {e}")
+            time.sleep(delay)
+    raise Exception(f"Failed to get embedding for text: {text[:60]}...")
 
+# === MAIN LOOP ===
 for i, obj in enumerate(soul_data, 1):
-    # Use pre-built embedding_text if present, else combine string fields
     if 'embedding_text' in obj and obj['embedding_text'].strip():
         text = obj['embedding_text']
     else:
-        # Combine all string fields excluding technical ones
-        text = " | ".join(str(v) for k, v in obj.items() if isinstance(v, str) and k.lower() not in ['vector', 'id', 'type'])
-    obj['vector'] = model.encode(text).tolist()
-    if i % 50 == 0 or i == len(soul_data):
+        text = " | ".join(
+            str(v) for k, v in obj.items() if isinstance(v, str) and k.lower() not in EXCLUDED_KEYS
+        )
+    obj['vector'] = get_openai_embedding(text)
+    if i % 10 == 0 or i == len(soul_data):
         print(f"Processed {i}/{len(soul_data)} records...")
 
-# Save locally (or overwrite existing file)
+# === SAVE OUTPUT ===
 with open('soul_with_vectors.json', 'w', encoding='utf-8') as f:
     json.dump(soul_data, f, indent=2, ensure_ascii=False)
 
