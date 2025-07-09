@@ -1,10 +1,14 @@
+import os
 import requests
 import json
 import time
 
 # === CONFIG ===
 DATA_ENDPOINT = "https://script.google.com/macros/s/AKfycbzXADSD9DGS4QH7qOwJVoSbhXMh25U_9o39SQKHuVHOE5akBmUeWaSxJSDj5p-Pi8G6/exec"
-OPENAI_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  # <-- REPLACE with your OpenAI API key!
+OPENAI_KEY = os.environ.get("OPENAI_KEY")
+
+if not OPENAI_KEY:
+    raise Exception("OPENAI_KEY environment variable not set! Please set it before running this script.")
 
 EXCLUDED_KEYS = ["vector", "id", "type"]
 
