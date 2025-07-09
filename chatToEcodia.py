@@ -110,7 +110,7 @@ When you reply:
 
 User: {user_question}
 Ecodia:"""
-return prompt
+    return prompt
 
 
 # ====== Embedding (OpenAI backend, no keys exposed) ======
