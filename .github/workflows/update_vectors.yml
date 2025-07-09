@@ -31,7 +31,7 @@ jobs:
       run: |
         python update_Vectors.py
 
-    - name: Debug: Show current Git remote URL
+    - name: "Debug: Show current Git remote URL"
       run: git remote get-url origin
 
     - name: Remove GitHub token header to avoid override
