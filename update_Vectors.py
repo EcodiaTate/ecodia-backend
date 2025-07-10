@@ -10,8 +10,6 @@ OPENAI_KEY = os.environ.get("OPENAI_KEY")
 if not OPENAI_KEY:
     raise Exception("OPENAI_KEY environment variable not set! Please set it before running this script.")
 
-EXCLUDED_KEYS = ["vector", "id", "type"]  # Add more if needed
-
 # === FETCH DATA ===
 print("Fetching live Ecodia data...")
 response = requests.get(DATA_ENDPOINT)
@@ -44,15 +42,20 @@ def get_openai_embedding(text, retries=3, delay=1):
 processed_count = 0
 new_soul_data = []
 for i, obj in enumerate(soul_data, 1):
-    # Build embedding_text from all non-excluded, non-empty string fields, labeled by header
-    fields = [f"{k.capitalize()}: {v.strip()}" for k, v in obj.items()
-              if k.lower() not in EXCLUDED_KEYS and isinstance(v, str) and v.strip()]
-    if not fields:
-        print(f"Skipping record {i} (no content to embed)")
+    # Use only the "Summary" field (context-mapped by Apps Script)
+    summary = obj.get("Summary", "").strip()
+    if not summary:
+        print(f"Skipping record {i} (no summary to embed)")
         continue
-    embedding_text = " | ".join(fields)
-    obj['embedding_text'] = embedding_text
-    obj['vector'] = get_openai_embedding(embedding_text)
+
+    # Optionally: Use Title for debugging/context (NOT for embedding)
+    title = obj.get("Title", "")
+
+    # For debugging: print title/summary pair if you want
+    # print(f"[{i}] Title: {title} | Summary: {summary[:80]}")
+
+    obj['embedding_text'] = summary
+    obj['vector'] = get_openai_embedding(summary)
     new_soul_data.append(obj)
     processed_count += 1
     if processed_count % 10 == 0 or i == len(soul_data):
